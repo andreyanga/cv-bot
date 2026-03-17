@@ -1,6 +1,5 @@
 const { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell,
-        AlignmentType, BorderStyle, WidthType, ShadingType, VerticalAlign } = require('docx')
-const puppeteer = require('puppeteer')
+        AlignmentType, BorderStyle, WidthType, VerticalAlign } = require('docx')
 
 function criarSeparador(cor = '2563EB') {
   return new Paragraph({
@@ -60,23 +59,21 @@ async function gerarCV(dados) {
       alignment: AlignmentType.CENTER,
       spacing: { before: 200, after: 100 }
     }),
-
     new Paragraph({
       children: [
-        new TextRun({ text: `📍 ${dados_pessoais.cidade}`, size: 18, color: '6B7280', font: 'Arial' }),
+        new TextRun({ text: `${dados_pessoais.cidade}`, size: 18, color: '6B7280', font: 'Arial' }),
         new TextRun({ text: '   |   ', size: 18, color: '6B7280', font: 'Arial' }),
-        new TextRun({ text: `📞 ${dados_pessoais.telefone}`, size: 18, color: '6B7280', font: 'Arial' }),
+        new TextRun({ text: `${dados_pessoais.telefone}`, size: 18, color: '6B7280', font: 'Arial' }),
         new TextRun({ text: '   |   ', size: 18, color: '6B7280', font: 'Arial' }),
-        new TextRun({ text: `✉️ ${dados_pessoais.email}`, size: 18, color: '6B7280', font: 'Arial' }),
+        new TextRun({ text: `${dados_pessoais.email}`, size: 18, color: '6B7280', font: 'Arial' }),
         ...(dados_pessoais.linkedin && dados_pessoais.linkedin !== 'não' ? [
           new TextRun({ text: '   |   ', size: 18, color: '6B7280', font: 'Arial' }),
-          new TextRun({ text: `🔗 ${dados_pessoais.linkedin}`, size: 18, color: '2563EB', font: 'Arial' })
+          new TextRun({ text: `${dados_pessoais.linkedin}`, size: 18, color: '2563EB', font: 'Arial' })
         ] : [])
       ],
       alignment: AlignmentType.CENTER,
       spacing: { before: 80, after: 200 }
     }),
-
     criarSeparador()
   ]
 
@@ -130,7 +127,7 @@ async function gerarCV(dados) {
     ])
   ] : []
 
-  // ── Competências e Idiomas lado a lado ──
+  // ── Competências e Idiomas ──
   const tabelaCompetenciasIdiomas = new Table({
     width: { size: 9026, type: WidthType.DXA },
     columnWidths: [4500, 4526],
@@ -145,7 +142,6 @@ async function gerarCV(dados) {
     rows: [
       new TableRow({
         children: [
-          // Coluna Competências
           new TableCell({
             width: { size: 4500, type: WidthType.DXA },
             verticalAlign: VerticalAlign.TOP,
@@ -176,7 +172,6 @@ async function gerarCV(dados) {
               )
             ]
           }),
-          // Coluna Idiomas
           new TableCell({
             width: { size: 4526, type: WidthType.DXA },
             verticalAlign: VerticalAlign.TOP,

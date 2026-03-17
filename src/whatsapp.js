@@ -1,15 +1,18 @@
 const { default: makeWASocket, DisconnectReason, useMultiFileAuthState } = require('@whiskeysockets/baileys')
 const qrcode = require('qrcode-terminal')
-const { processarMensagem } = require('./conversa')
 
 let sock
 
-async function conectarWhatsApp() {
+async function conectarWhatsApp(onMensagem) {
   const { state, saveCreds } = await useMultiFileAuthState('auth_info')
 
   sock = makeWASocket({
     auth: state,
-    printQRInTerminal: false
+    printQRInTerminal: false,
+    connectTimeoutMs: 60000,
+    defaultQueryTimeoutMs: 60000,
+    keepAliveIntervalMs: 10000,
+    retryRequestDelayMs: 2000
   })
 
   sock.ev.on('connection.update', (update) => {
@@ -23,7 +26,7 @@ async function conectarWhatsApp() {
     if (connection === 'close') {
       const deveReconectar = lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut
       console.log('Conexão fechada. Reconectando:', deveReconectar)
-      if (deveReconectar) conectarWhatsApp()
+      if (deveReconectar) conectarWhatsApp(onMensagem)
     }
 
     if (connection === 'open') {
@@ -38,14 +41,13 @@ async function conectarWhatsApp() {
     if (!msg.message || msg.key.fromMe) return
 
     const telefone = msg.key.remoteJid
-    const texto = msg.message.conversation || 
+    const texto = msg.message.conversation ||
                   msg.message.extendedTextMessage?.text || ''
 
     if (!texto) return
 
     console.log(`📩 Mensagem de ${telefone}: ${texto}`)
-
-    await processarMensagem(telefone, texto, sock)
+    await onMensagem(telefone, texto)
   })
 }
 
@@ -56,7 +58,7 @@ async function enviarMensagem(telefone, texto) {
 async function enviarFicheiro(telefone, buffer, nomeFicheiro) {
   await sock.sendMessage(telefone, {
     document: buffer,
-    mimetype: 'application/pdf',
+    mimetype: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
     fileName: nomeFicheiro
   })
 }

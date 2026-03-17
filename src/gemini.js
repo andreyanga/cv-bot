@@ -25,7 +25,7 @@ async function organizarDadosComIA(dados) {
     - Competências: ${dados.competencias}
     - Idiomas: ${dados.idiomas}
 
-    Com base nestes dados, devolve APENAS um JSON válido com esta estrutura exacta, sem texto adicional, sem markdown, sem backticks:
+    Devolve APENAS um JSON válido com esta estrutura exacta, sem texto adicional, sem markdown, sem backticks:
     {
       "dados_pessoais": {
         "nome": "",
@@ -70,10 +70,8 @@ async function organizarDadosComIA(dados) {
   const texto = resultado.response.text()
 
   try {
-    const dadosOrganizados = JSON.parse(texto)
-    return dadosOrganizados
-  } catch (erro) {
-    // Tenta limpar o texto caso venha com caracteres extra
+    return JSON.parse(texto)
+  } catch {
     const textoLimpo = texto
       .replace(/```json/g, '')
       .replace(/```/g, '')

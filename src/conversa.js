@@ -1,5 +1,4 @@
 const { createClient } = require('@supabase/supabase-js')
-const { enviarMensagem, enviarFicheiro } = require('./whatsapp')
 const { organizarDadosComIA } = require('./gemini')
 const { gerarCV } = require('./gerador-cv')
 
@@ -45,12 +44,16 @@ const PERGUNTAS = {
 }
 
 async function obterConversa(telefone) {
-  const { data } = await supabase
-    .from('conversas')
-    .select('*')
-    .eq('telefone', telefone)
-    .single()
-  return data
+  try {
+    const { data } = await supabase
+      .from('conversas')
+      .select('*')
+      .eq('telefone', telefone)
+      .single()
+    return data
+  } catch {
+    return null
+  }
 }
 
 async function guardarConversa(telefone, etapa, dados) {
@@ -72,7 +75,7 @@ async function guardarConversa(telefone, etapa, dados) {
   }
 }
 
-async function processarMensagem(telefone, texto, sock) {
+async function processarMensagem(telefone, texto, enviarMensagem, enviarFicheiro) {
   try {
     let conversa = await obterConversa(telefone)
 
@@ -85,14 +88,12 @@ async function processarMensagem(telefone, texto, sock) {
     const etapaActual = conversa.etapa
     const dados = conversa.dados || {}
 
-    // Utilizador quer reiniciar
     if (texto.toLowerCase() === 'reiniciar') {
       await guardarConversa(telefone, 'inicio', {})
       await enviarMensagem(telefone, PERGUNTAS.inicio)
       return
     }
 
-    // Etapa inicio — aguarda "iniciar"
     if (etapaActual === 'inicio') {
       if (texto.toLowerCase() === 'iniciar') {
         await guardarConversa(telefone, 'nome', dados)
@@ -103,18 +104,20 @@ async function processarMensagem(telefone, texto, sock) {
       return
     }
 
-    // Guarda a resposta da etapa actual
+    if (etapaActual === 'finalizado') {
+      await enviarMensagem(telefone, '✅ O teu CV já foi gerado! Escreve *reiniciar* para criar um novo.')
+      return
+    }
+
     if (etapaActual === 'experiencia_empresa' && texto.toLowerCase() === 'não') {
       dados.sem_experiencia = true
-      const proximaEtapa = 'competencias'
-      await guardarConversa(telefone, proximaEtapa, dados)
-      await enviarMensagem(telefone, PERGUNTAS[proximaEtapa])
+      await guardarConversa(telefone, 'competencias', dados)
+      await enviarMensagem(telefone, PERGUNTAS.competencias)
       return
     }
 
     dados[etapaActual] = texto
 
-    // Avança para próxima etapa
     const indexActual = ETAPAS.indexOf(etapaActual)
     const proximaEtapa = ETAPAS[indexActual + 1]
 
@@ -128,7 +131,7 @@ async function processarMensagem(telefone, texto, sock) {
 
         await enviarMensagem(telefone, '✅ O teu CV está pronto!')
         await enviarFicheiro(telefone, pdfBuffer, nomeFicheiro)
-        await enviarMensagem(telefone, '📄 Aqui está o teu CV em PDF.\n\nSe quiseres criar outro, escreve *reiniciar*.')
+        await enviarMensagem(telefone, '📄 Aqui está o teu CV.\n\nSe quiseres criar outro, escreve *reiniciar*.')
 
         await supabase.from('cvs').insert({
           telefone,
