@@ -11,6 +11,7 @@
     "@whiskeysockets/baileys": "^6.7.0",
     "docx": "^8.5.0",
     "dotenv": "^16.6.1",
+    "https-proxy-agent": "^8.0.0",
     "puppeteer": "^22.0.0",
     "qrcode-terminal": "^0.12.0"
   }

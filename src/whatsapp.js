@@ -1,4 +1,4 @@
-const { default: makeWASocket, DisconnectReason, useMultiFileAuthState } = require('@whiskeysockets/baileys')
+const { default: makeWASocket, DisconnectReason, useMultiFileAuthState, makeCacheableSignalKeyStore } = require('@whiskeysockets/baileys')
 const qrcode = require('qrcode-terminal')
 
 let sock
@@ -7,12 +7,21 @@ async function conectarWhatsApp(onMensagem) {
   const { state, saveCreds } = await useMultiFileAuthState('auth_info')
 
   sock = makeWASocket({
-    auth: state,
+    auth: {
+      creds: state.creds,
+      keys: makeCacheableSignalKeyStore(state.keys, console)
+    },
     printQRInTerminal: false,
-    connectTimeoutMs: 60000,
-    defaultQueryTimeoutMs: 60000,
-    keepAliveIntervalMs: 10000,
-    retryRequestDelayMs: 2000
+    connectTimeoutMs: 120000,
+    defaultQueryTimeoutMs: 120000,
+    keepAliveIntervalMs: 30000,
+    retryRequestDelayMs: 5000,
+    maxRetries: 10,
+    browser: ['cv-bot', 'Chrome', '120.0.0'],
+    syncFullHistory: false,
+    fireInitQueries: false,
+    generateHighQualityLinkPreview: false,
+    shouldIgnoreJid: jid => !jid.includes('@s.whatsapp.net') && !jid.includes('@g.us')
   })
 
   sock.ev.on('connection.update', (update) => {
@@ -24,9 +33,12 @@ async function conectarWhatsApp(onMensagem) {
     }
 
     if (connection === 'close') {
-      const deveReconectar = lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut
-      console.log('Conexão fechada. Reconectando:', deveReconectar)
-      if (deveReconectar) conectarWhatsApp(onMensagem)
+      const statusCode = lastDisconnect?.error?.output?.statusCode
+      const deveReconectar = statusCode !== DisconnectReason.loggedOut
+      console.log('Conexão fechada. Código:', statusCode, 'Reconectando:', deveReconectar)
+      if (deveReconectar) {
+        setTimeout(() => conectarWhatsApp(onMensagem), 5000)
+      }
     }
 
     if (connection === 'open') {
